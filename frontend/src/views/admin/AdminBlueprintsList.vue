@@ -55,7 +55,7 @@
                       <td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
                         <div class="flex space-x-2">
                           <a
-                            :href="`${import.meta.env.VITE_API_URL}/api/blueprints/${blueprint.id}/download`"
+                            :href="`/api/blueprints/${blueprint.id}/download`"
                             class="text-indigo-600 hover:text-indigo-900"
                             target="_blank"
                           >

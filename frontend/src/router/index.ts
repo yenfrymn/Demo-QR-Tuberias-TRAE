@@ -5,6 +5,9 @@ const routes = [
   { path: '/', name: 'home', component: () => import('../views/HomeView.vue') },
   { path: '/health', name: 'health', component: () => import('../views/HealthView.vue') },
   
+  // Admin Dashboard
+  { path: '/admin', name: 'admin-dashboard', component: () => import('../views/admin/AdminDashboard.vue') },
+  
   // Admin Pipeline Routes
   { path: '/admin/pipelines', name: 'admin-pipelines', component: () => import('../views/admin/AdminPipelinesList.vue') },
   { path: '/admin/pipelines/new', name: 'admin-pipelines-new', component: () => import('../views/admin/AdminPipelinesNew.vue') },

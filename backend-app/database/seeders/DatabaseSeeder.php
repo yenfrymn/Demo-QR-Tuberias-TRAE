@@ -11,6 +11,7 @@ use App\Models\Blueprint;
 use App\Services\QrService;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Hash;
 
 class DatabaseSeeder extends Seeder
 {
@@ -21,27 +22,31 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        $admin = User::factory()->create([
+        $admin = User::firstOrCreate([
+            'email' => 'admin@example.com'
+        ], [
             'name' => 'Admin',
-            'email' => 'admin@example.com',
-            'password' => 'Admin123!',
+            'password' => Hash::make('Admin123!'),
             'role' => 'admin',
         ]);
-        $editor = User::factory()->create([
+        $editor = User::firstOrCreate([
+            'email' => 'editor@example.com'
+        ], [
             'name' => 'Editor',
-            'email' => 'editor@example.com',
-            'password' => 'Editor123!',
+            'password' => Hash::make('Editor123!'),
             'role' => 'editor',
         ]);
-        $viewer = User::factory()->create([
+        $viewer = User::firstOrCreate([
+            'email' => 'viewer@example.com'
+        ], [
             'name' => 'Viewer',
-            'email' => 'viewer@example.com',
-            'password' => 'Viewer123!',
+            'password' => Hash::make('Viewer123!'),
             'role' => 'viewer',
         ]);
 
-        $pipe = Pipeline::create([
-            'qr_code' => 'PIPE-2024-001',
+        $pipe = Pipeline::firstOrCreate([
+            'qr_code' => 'PIPE-2024-001'
+        ], [
             'name' => 'Pipeline Norte Sección A',
             'lat' => 4.7110,
             'lng' => -74.0721,
@@ -112,8 +117,9 @@ class DatabaseSeeder extends Seeder
             ['code' => 'PIPE-2024-002', 'name' => 'Pipeline Centro Sección B'],
             ['code' => 'PIPE-2024-003', 'name' => 'Pipeline Sur Sección C'],
         ] as $demo) {
-            $p = Pipeline::create([
-                'qr_code' => $demo['code'],
+            $p = Pipeline::firstOrCreate([
+                'qr_code' => $demo['code']
+            ], [
                 'name' => $demo['name'],
                 'lat' => 4.6,
                 'lng' => -74.1,
@@ -123,37 +129,51 @@ class DatabaseSeeder extends Seeder
                 'installation_date' => '2021-05-10',
                 'status' => 'active',
             ]);
-            $p->qr_checksum = $qr->checksum($p->qr_code);
-            $p->qr_image_path = $qr->generateImage($p->qr_code);
-            $p->save();
+            
+            if (!$p->qr_checksum) {
+                $p->qr_checksum = $qr->checksum($p->qr_code);
+                $p->qr_image_path = $qr->generateImage($p->qr_code);
+                $p->save();
+            }
 
-            $op = Company::create([
-                'name' => 'FlowOps',
+            $op = Company::firstOrCreate([
+                'name' => 'FlowOps'
+            ], [
                 'type' => 'operator',
             ]);
-            $p->companies()->attach($op->id, [
-                'role' => 'current_operator',
-                'start_date' => '2022-02-01',
-                'is_current' => true,
-            ]);
+            
+            if (!$p->companies()->where('company_id', $op->id)->exists()) {
+                $p->companies()->attach($op->id, [
+                    'role' => 'current_operator',
+                    'start_date' => '2022-02-01',
+                    'is_current' => true,
+                ]);
+            }
 
-            OperatingLicense::create([
+            OperatingLicense::firstOrCreate([
                 'pipeline_id' => $p->id,
-                'license_number' => 'LIC-'.$p->id,
+                'license_number' => 'LIC-'.$p->id
+            ], [
                 'issued_by' => 'ANH',
                 'issue_date' => now()->subYear()->toDateString(),
                 'expiry_date' => now()->addDays(45)->toDateString(),
                 'status' => 'active',
             ]);
 
-            Certification::create([
+            Certification::firstOrCreate([
                 'pipeline_id' => $p->id,
+                'certification_number' => 'ISO14001-'.$p->id
+            ], [
                 'type' => 'ISO 14001',
-                'certification_number' => 'ISO14001-'.$p->id,
                 'issued_date' => now()->subMonths(8)->toDateString(),
                 'expiry_date' => now()->addMonths(16)->toDateString(),
                 'status' => 'valid',
             ]);
+        }
+
+        // Run comprehensive demo data seeder only if no demo pipelines exist
+        if (!Pipeline::where('code', 'GAS-NOR-A-001')->exists()) {
+            $this->call(DemoDataSeeder::class);
         }
     }
 }

@@ -33,8 +33,15 @@ async function submit() {
     try {
       const me = await api.get('/api/user')
       auth.setRole(me.data.role || 'viewer')
-    } catch {}
-    router.push('/scan')
+      // Redirigir a dashboard de administración si es admin o editor
+      if (['admin', 'editor'].includes(me.data.role)) {
+        router.push('/admin')
+      } else {
+        router.push('/scan')
+      }
+    } catch {
+      router.push('/scan')
+    }
   } catch (e) {
     alert('Error de autenticación')
   } finally {
