@@ -1,0 +1,507 @@
+openapi: 3.0.3
+info:
+  title: API - Sistema de Gestión de Tuberías con QR
+  version: 1.0.0
+  description: API para consulta y administración de tuberías petroleras mediante códigos QR.
+servers:
+  - url: https://api.example.com
+    description: Producción
+  - url: https://staging.api.example.com
+    description: Staging
+security:
+  - bearerAuth: []
+paths:
+  /api/login:
+    post:
+      summary: Iniciar sesión
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+              required: [email, password]
+      responses:
+        '200':
+          description: Login exitoso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+        '401':
+          description: Credenciales inválidas
+  /api/logout:
+    post:
+      summary: Cerrar sesión
+      responses:
+        '204':
+          description: Sesión cerrada
+  /api/refresh:
+    post:
+      summary: Refrescar token
+      responses:
+        '200':
+          description: Token refrescado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+
+  /api/pipelines:
+    get:
+      summary: Listar tuberías / buscar por QR
+      parameters:
+        - in: query
+          name: qr_code
+          schema:
+            type: string
+          description: Código QR de la tubería
+        - in: query
+          name: page
+          schema:
+            type: integer
+        - in: query
+          name: per_page
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Lista de tuberías
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PipelineListResponse'
+    post:
+      summary: Crear tubería
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PipelineInput'
+      responses:
+        '201':
+          description: Tubería creada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PipelineResponse'
+  /api/pipelines/{id}:
+    get:
+      summary: Obtener detalle de tubería
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Detalle de tubería
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PipelineResponse'
+        '404':
+          description: No encontrada
+    put:
+      summary: Actualizar tubería
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PipelineInput'
+      responses:
+        '200':
+          description: Tubería actualizada
+    delete:
+      summary: Eliminar tubería
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Eliminada
+
+  /api/pipelines/{id}/certifications:
+    get:
+      summary: Listar certificaciones de una tubería
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Lista de certificaciones
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CertificationListResponse'
+
+  /api/certifications:
+    post:
+      summary: Crear certificación
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CertificationInput'
+      responses:
+        '201':
+          description: Certificación creada
+
+  /api/certifications/{id}/download:
+    get:
+      summary: Descargar documento de certificación
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Archivo devuelto
+
+  /api/pipelines/{id}/blueprints:
+    get:
+      summary: Listar planos (blueprints) de una tubería
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Lista de planos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BlueprintListResponse'
+
+  /api/blueprints/upload:
+    post:
+      summary: Subir planos
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/BlueprintUploadInput'
+      responses:
+        '201':
+          description: Planos subidos
+
+  /api/blueprints/{id}/download:
+    get:
+      summary: Descargar plano
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Archivo devuelto
+
+  /api/pipelines/{id}/license:
+    get:
+      summary: Obtener licencia de operación vigente
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Licencia de operación
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LicenseResponse'
+
+  /api/licenses:
+    post:
+      summary: Crear licencia de operación
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/LicenseInput'
+      responses:
+        '201':
+          description: Licencia creada
+
+  /api/licenses/expiring:
+    get:
+      summary: Listar licencias que vencen pronto
+      parameters:
+        - in: query
+          name: within_days
+          schema:
+            type: integer
+          description: Días a revisar (por defecto 60)
+      responses:
+        '200':
+          description: Licencias próximas a vencer
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LicenseListResponse'
+
+  /api/reports/generate:
+    post:
+      summary: Generar reporte PDF de tubería
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                pipeline_id:
+                  type: integer
+      responses:
+        '201':
+          description: Reporte generado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReportResponse'
+
+  /api/reports/{id}/download:
+    get:
+      summary: Descargar reporte PDF
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Archivo devuelto
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    Pipeline:
+      type: object
+      properties:
+        id: { type: integer }
+        qr_code: { type: string }
+        name: { type: string }
+        location:
+          type: object
+          properties:
+            lat: { type: number, format: float }
+            lng: { type: number, format: float }
+            address: { type: string }
+        specifications:
+          type: object
+          properties:
+            diameter: { type: string }
+            material: { type: string }
+            length: { type: string }
+            pressure_rating: { type: string }
+        status: { type: string, enum: [active, inactive, maintenance] }
+        description: { type: string }
+    PipelineInput:
+      type: object
+      properties:
+        qr_code: { type: string }
+        name: { type: string }
+        location: { $ref: '#/components/schemas/Location' }
+        diameter: { type: string }
+        material: { type: string }
+        installation_date: { type: string, format: date }
+        status: { type: string }
+        description: { type: string }
+      required: [qr_code, name, status]
+    Location:
+      type: object
+      properties:
+        lat: { type: number }
+        lng: { type: number }
+        address: { type: string }
+    PipelineResponse:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/Pipeline'
+        meta:
+          $ref: '#/components/schemas/Meta'
+    PipelineListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Pipeline'
+        meta:
+          $ref: '#/components/schemas/Meta'
+
+    Company:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        tax_id: { type: string }
+        type: { type: string, enum: [initiator, operator] }
+        contact_info: { type: object }
+
+    Certification:
+      type: object
+      properties:
+        id: { type: integer }
+        pipeline_id: { type: integer }
+        type: { type: string }
+        certification_number: { type: string }
+        issued_date: { type: string, format: date }
+        expiry_date: { type: string, format: date }
+        issuing_body: { type: string }
+        status: { type: string, enum: [valid, expired, pending] }
+        document_url: { type: string }
+    CertificationInput:
+      type: object
+      properties:
+        pipeline_id: { type: integer }
+        type: { type: string }
+        certification_number: { type: string }
+        issued_date: { type: string, format: date }
+        expiry_date: { type: string, format: date }
+        issuing_body: { type: string }
+        document: { type: string, format: binary }
+      required: [pipeline_id, type, certification_number]
+    CertificationListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Certification'
+        meta:
+          $ref: '#/components/schemas/Meta'
+
+    Blueprint:
+      type: object
+      properties:
+        id: { type: integer }
+        pipeline_id: { type: integer }
+        title: { type: string }
+        file_type: { type: string, enum: [PDF, DWG, DXF] }
+        version: { type: string }
+        upload_date: { type: string, format: date }
+        download_url: { type: string }
+    BlueprintUploadInput:
+      type: object
+      properties:
+        pipeline_id: { type: integer }
+        files:
+          type: array
+          items:
+            type: string
+            format: binary
+      required: [pipeline_id, files]
+    BlueprintListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Blueprint'
+        meta:
+          $ref: '#/components/schemas/Meta'
+
+    License:
+      type: object
+      properties:
+        id: { type: integer }
+        pipeline_id: { type: integer }
+        license_number: { type: string }
+        issued_by: { type: string }
+        issue_date: { type: string, format: date }
+        expiry_date: { type: string, format: date }
+        status: { type: string, enum: [active, expired, suspended] }
+        document_url: { type: string }
+    LicenseInput:
+      type: object
+      properties:
+        pipeline_id: { type: integer }
+        license_number: { type: string }
+        issued_by: { type: string }
+        issue_date: { type: string, format: date }
+        expiry_date: { type: string, format: date }
+        status: { type: string }
+        document: { type: string, format: binary }
+      required: [pipeline_id, license_number, issued_by, issue_date, expiry_date]
+    LicenseResponse:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/License'
+        meta:
+          $ref: '#/components/schemas/Meta'
+    LicenseListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/License'
+        meta:
+          $ref: '#/components/schemas/Meta'
+
+    Report:
+      type: object
+      properties:
+        id: { type: integer }
+        pipeline_id: { type: integer }
+        title: { type: string }
+        document_url: { type: string }
+    ReportResponse:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/Report'
+        meta:
+          $ref: '#/components/schemas/Meta'
+
+    Meta:
+      type: object
+      properties:
+        timestamp: { type: string, format: date-time }
+        version: { type: string }
